@@ -1,8 +1,6 @@
 # -*- encoding: utf-8 -*-
 from typing import *
 import json
-import requests
-import hashlib
 
 
 class DevChatResponse:

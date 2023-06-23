@@ -1,8 +1,6 @@
 # -*- encoding: utf-8 -*-
-from typing import *
-import json
-import requests
 import hashlib
+import requests
 
 from .chat.crequest import *
 from .chat.cresponse import *
@@ -14,7 +12,7 @@ class YCMClient:
         self.secretKey = secretKey
         self.host: Final = 'https://www.yucongming.com/api/dev'
 
-    def getHeaderDict(self, body) -> dict:
+    def getHeaderDict(self, body) -> Dict[str, str]:
         if not (self.accessKey or self.secretKey):
             raise InterruptedError('access key or secret key hasn\'t been setup yet')
         return dict(
