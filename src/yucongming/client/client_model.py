@@ -1,8 +1,11 @@
 # -*- encoding: utf-8 -*-
+from random import randrange
+import ssl
 import datetime
 import hashlib
-import requests
-from random import sample
+
+import urllib.request as urequests
+import urllib.parse as uparse
 
 from .chat.crequest import *
 from .chat.cresponse import *
@@ -14,17 +17,16 @@ class YCMClient:
         self.secretKey = secretKey
         self.host: Final = 'https://www.yucongming.com/api/dev'
 
-    def getHeaderDict(self, body) -> Dict[str, str]:
+    def get_data(self, body) -> Dict[str, str]:
         if not (self.accessKey or self.secretKey):
             raise InterruptedError('access key or secret key hasn\'t been setup yet')
-        e_body = hashlib.md5(body.encode('utf-8')).hexdigest()
-        date = f"{datetime.datetime.now().timestamp():.0f}"
+
         return dict(
             accessKey=self.accessKey,
-            sign=self.getSignature(e_body, self.secretKey),
-            body=e_body,
-            nonce=str(sample(range(1, 10), 4)),
-            timestamp=date,
+            body=(encoded_body := hashlib.md5(body.encode('utf-8')).hexdigest()),
+            sign=self.getSignature(encoded_body, self.secretKey),
+            nonce=str(randrange(1000, 9999)),
+            timestamp=f"{datetime.datetime.now().timestamp():.0f}",
         )
 
     @staticmethod
@@ -33,11 +35,16 @@ class YCMClient:
         return stuff
 
     def start_chat(self, crequest: DevChatRequest) -> DevChatResponse:
-        json_ = crequest.toJsonString()
         url = f'{self.host}/chat'
-        headers = self.getHeaderDict(json_)
-        # headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
-        #                               'Chrome/86.0.4240.198 Safari/537.36'})
-        print(headers)
-        res = requests.post(url, headers=headers)
-        return DevChatResponse(res.content)
+        json_ = crequest.toJsonString()
+        data = self.get_data(json_)
+        parsed_data = uparse.urlencode(data, encoding='utf-8').encode('utf-8')
+
+        headers = {'Content-Type': 'application/json'}
+
+        context = ssl._create_unverified_context()
+        # fixme --> 500 Systematic Error
+        request = urequests.Request(url, parsed_data, headers, method='POST')
+        res = urequests.urlopen(request, context=context)
+
+        return res.read()
